@@ -22,8 +22,7 @@ export const links: LinksFunction = () => [
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
   const searchParams = url.searchParams;
-  const page = Number(searchParams.get("page") || 1);
-  const search = searchParams.get("search") || "";
+  const page = Number(searchParams.get("page") || 1); // Página actual
   const limit = 20;
   const offset = (page - 1) * limit;
 
@@ -31,28 +30,18 @@ export const loader = async ({ request }) => {
     `https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`
   );
   const data = await response.json();
-
-  const filteredPokemons = data.results.filter(pokemon =>
-    pokemon.name.toLowerCase().includes(search.toLowerCase())
-  );
+  console.log(data);
 
   return json({
-    pokemons: filteredPokemons,
-    totalPages: Math.ceil(filteredPokemons.length / limit),
+    pokemons: data.results,
+    totalPages: Math.ceil(data.count / limit),
     currentPage: page,
   });
 };
 
 export default function App() {
   const { pokemons, currentPage, totalPages } = useLoaderData<typeof loader>();
-  const navigate = useNavigate();
-
-  const handleSearch = (event) => {
-    event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const search = formData.get("search");
-    navigate(`/?search=${search}&page=${currentPage}`);
-  };
+  const navigate = useNavigate(); // Usar useNavigate para la navegación
 
   return (
     <html lang="es">
@@ -66,19 +55,6 @@ export default function App() {
       <body>
         <div id="sidebar">
           <h1>Pokédex</h1>
-
-          {/* Formulario de Búsqueda */}
-          <form onSubmit={handleSearch}>
-            <input
-              type="text"
-              name="search"
-              placeholder="Buscar Pokémon"
-              style={{ padding: "0.5rem", margin: "0.5rem 0" }}
-            />
-            <button type="submit" style={{ padding: "0.5rem" }}>
-              Buscar
-            </button>
-          </form>
 
           {/* Lista de Pokémon */}
           <nav>
@@ -100,19 +76,7 @@ export default function App() {
           <div>
             {currentPage > 1 && (
               <button
-                onClick={() => navigate(`/?page=${currentPage - 1}`)}
-                style={{
-                  marginTop: "1rem",
-                  padding: "0.5rem",
-                  display: "inline-block",
-                  textDecoration: "none",
-                  backgroundColor: "#007bff",
-                  color: "#ffffff",
-                  borderRadius: "4px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  border: "none",
-                }}
+                onClick={() => navigate(`/?page=${currentPage - 1}`)} 
               >
                 Anterior
               </button>
@@ -120,19 +84,6 @@ export default function App() {
             {currentPage < totalPages && (
               <button
                 onClick={() => navigate(`/?page=${currentPage + 1}`)}
-                style={{
-                  marginTop: "1rem",
-                  padding: "0.5rem",
-                  display: "inline-block",
-                  textDecoration: "none",
-                  backgroundColor: "#007bff",
-                  color: "#ffffff",
-                  borderRadius: "4px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  border: "none",
-                  marginLeft: "0.5rem",
-                }}
               >
                 Siguiente
               </button>
