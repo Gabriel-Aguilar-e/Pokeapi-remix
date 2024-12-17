@@ -1,4 +1,5 @@
 import { json } from "@remix-run/node";
+import type { LinksFunction } from "@remix-run/node";
 import {
   Form,
   Link,
@@ -9,90 +10,134 @@ import {
   Scripts,
   ScrollRestoration,
   useLoaderData,
+  useNavigate,
 } from "@remix-run/react";
+import appStylesHref from "./app.css?url";
 
-import type { LinksFunction } from "@remix-run/node";
-import appStaylesHref from "./app.css?url";
-import { createEmptyContact, getContacts } from "./data";
-
-export const action = async () => {
-  const contact = await createEmptyContact();
-  return json({ contact });
-};
-
-export const loader = async () => {
-  const contacts = await getContacts();
-  return json({ contacts });
-};
-
+// Configuración de enlaces CSS
 export const links: LinksFunction = () => [
-  { rel: "stylesheet", href: appStaylesHref },
+  { rel: "stylesheet", href: appStylesHref },
 ];
 
-export default function App() {
+export const loader = async ({ request }) => {
+  const url = new URL(request.url);
+  const searchParams = url.searchParams;
+  const page = Number(searchParams.get("page") || 1);
+  const search = searchParams.get("search") || "";
+  const limit = 20;
+  const offset = (page - 1) * limit;
 
-  const { contacts } = useLoaderData<typeof loader>();
+  const response = await fetch(
+    `https://pokeapi.co/api/v2/pokemon?limit=${limit}&offset=${offset}`
+  );
+  const data = await response.json();
+
+  const filteredPokemons = data.results.filter(pokemon =>
+    pokemon.name.toLowerCase().includes(search.toLowerCase())
+  );
+
+  return json({
+    pokemons: filteredPokemons,
+    totalPages: Math.ceil(filteredPokemons.length / limit),
+    currentPage: page,
+  });
+};
+
+export default function App() {
+  const { pokemons, currentPage, totalPages } = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
+
+  const handleSearch = (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const search = formData.get("search");
+    navigate(`/?search=${search}&page=${currentPage}`);
+  };
 
   return (
-    <html lang="en">
+    <html lang="es">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Pokédex Remix</title>
         <Meta />
         <Links />
       </head>
       <body>
         <div id="sidebar">
-          <h1>Remix Contacts</h1>
-          <div>
-            <Form id="search-form" role="search">
-              <input
-                id="q"
-                aria-label="Search contacts"
-                placeholder="Search"
-                type="search"
-                name="q"
-              />
-              <div id="search-spinner" aria-hidden hidden={true} />
-            </Form>
-            <Form method="post">
-              <button type="submit">New</button>
-            </Form>
-          </div>
+          <h1>Pokédex</h1>
+
+          {/* Formulario de Búsqueda */}
+          <form onSubmit={handleSearch}>
+            <input
+              type="text"
+              name="search"
+              placeholder="Buscar Pokémon"
+              style={{ padding: "0.5rem", margin: "0.5rem 0" }}
+            />
+            <button type="submit" style={{ padding: "0.5rem" }}>
+              Buscar
+            </button>
+          </form>
+
+          {/* Lista de Pokémon */}
           <nav>
-            {contacts.length ? (
-              <ul>
-                {contacts.map((contact) => (
-                  <li key={contact.id}>
-                    <NavLink
-                      className={({ isActive, isPending }) =>
-                        isActive
-                          ? "active"
-                          : isPending
-                          ? "pending"
-                          : ""
-                      }
-                     to={`contacts/${contact.id}`}>
-                      {contact.first || contact.last ? (
-                        <>
-                          {contact.first} {contact.last}
-                        </>
-                      ) : (
-                        <i>No Name</i>
-                      )}{" "}
-                      {contact.favorite ? (
-                        <span>★</span>
-                      ) : null}
-                    </NavLink>  
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>
-                <i>No contacts</i>
-              </p>
-            )}
+            <ul>
+              {pokemons.map((pokemon, index) => (
+                <li key={index}>
+                  <NavLink
+                    to={`/pokemon/${pokemon.name}?page=${currentPage}`}
+                    className="capitalize"
+                  >
+                    {pokemon.name}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
           </nav>
+
+          {/* Paginación */}
+          <div>
+            {currentPage > 1 && (
+              <button
+                onClick={() => navigate(`/?page=${currentPage - 1}`)}
+                style={{
+                  marginTop: "1rem",
+                  padding: "0.5rem",
+                  display: "inline-block",
+                  textDecoration: "none",
+                  backgroundColor: "#007bff",
+                  color: "#ffffff",
+                  borderRadius: "4px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  border: "none",
+                }}
+              >
+                Anterior
+              </button>
+            )}
+            {currentPage < totalPages && (
+              <button
+                onClick={() => navigate(`/?page=${currentPage + 1}`)}
+                style={{
+                  marginTop: "1rem",
+                  padding: "0.5rem",
+                  display: "inline-block",
+                  textDecoration: "none",
+                  backgroundColor: "#007bff",
+                  color: "#ffffff",
+                  borderRadius: "4px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  border: "none",
+                  marginLeft: "0.5rem",
+                }}
+              >
+                Siguiente
+              </button>
+            )}
+          </div>
         </div>
         <div id="detail">
           <Outlet />
