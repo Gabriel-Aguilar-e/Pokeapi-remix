@@ -1,8 +1,6 @@
 import { json } from "@remix-run/node";
 import type { LinksFunction } from "@remix-run/node";
 import {
-  Form,
-  Link,
   Links,
   Meta,
   NavLink,
@@ -14,15 +12,16 @@ import {
 } from "@remix-run/react";
 import appStylesHref from "./app.css?url";
 
-// Configuración de enlaces CSS
+//CSS
 export const links: LinksFunction = () => [
   { rel: "stylesheet", href: appStylesHref },
 ];
 
+//Paginación
 export const loader = async ({ request }) => {
   const url = new URL(request.url);
   const searchParams = url.searchParams;
-  const page = Number(searchParams.get("page") || 1); // Página actual
+  const page = Number(searchParams.get("page") || 1); 
   const limit = 20;
   const offset = (page - 1) * limit;
 
@@ -41,7 +40,7 @@ export const loader = async ({ request }) => {
 
 export default function App() {
   const { pokemons, currentPage, totalPages } = useLoaderData<typeof loader>();
-  const navigate = useNavigate(); // Usar useNavigate para la navegación
+  const navigate = useNavigate();
 
   return (
     <html lang="es">
@@ -55,8 +54,6 @@ export default function App() {
       <body>
         <div id="sidebar">
           <h1>Pokédex</h1>
-
-          {/* Lista de Pokémon */}
           <nav>
             <ul>
               {pokemons.map((pokemon, index) => (
@@ -71,8 +68,6 @@ export default function App() {
               ))}
             </ul>
           </nav>
-
-          {/* Paginación */}
           <div>
             {currentPage > 1 && (
               <button

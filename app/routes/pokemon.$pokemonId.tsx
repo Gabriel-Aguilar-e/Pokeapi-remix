@@ -1,7 +1,9 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 
-// Loader para obtener detalles del Pokémon
+
+
+
 export const loader = async ({ params }: { params: { pokemonId: string } }) => {
   const response = await fetch(
     `https://pokeapi.co/api/v2/pokemon/${params.pokemonId}`
